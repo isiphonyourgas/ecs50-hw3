@@ -10,13 +10,11 @@ makechange:
 	# EBX will store the current amount
 	# EDX will store the pointer to the change array
 	# ESI will store the number of denominations
+	# EDI will do something that I have yet to settle on
 	# makechange( amt, *onhand, *denoms, ndenoms, *thechange)
 	# =========>  EBX    ECX      EAX      ESI       EDX
-	movl 4(%esp), %ebx
-	movl 8(%esp), %ecx
-	movl 12(%esp), %eax
-	movl 16(%esp), %esi
-	movl 20(%esp), %edx
+
+	call setregs	  # Use subroutine to grab arguments
 	call findchange
 	cmpl $0, %eax
 	jz done
@@ -35,6 +33,15 @@ makechange:
 	call makechange
 	addl $20, %esp 	  # Clean the stack
 done:	ret
+
+setregs:
+	movl 8(%esp), %ebx
+	movl 12(%esp), %ecx
+	movl 16(%esp), %eax
+	movl 20(%esp), %esi
+	movl 24(%esp), %edx
+	movl $-1, %edi
+	ret
 
 checknum:
 	# This function will decrement the on-hand coin count
