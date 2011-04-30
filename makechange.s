@@ -16,13 +16,18 @@ makechange:
 
 	call setregs	  # Use subroutine to grab arguments
 	call findchange
-	cmpl $0, %eax
+	cmpl $0, %edi
 	jz done
 
+	cmpl $0, (%ecx)
+	jz call2
 	# Prepare for next call
-	# Use checknum subroutine to decrement ECX values to new permutation
-	call checknum
+	#call checknum
 	call reset_change
+	# Backup c(ECX) before the next call
+	pushl (%ecx)
+	# Now, decrement c(ECX) to be used in next call
+	decl (%ecx)
 	# Push arguments
 	pushl %edx
 	pushl %esi
@@ -31,7 +36,38 @@ makechange:
 	pushl %ebx
 	# RECURSION TIME!
 	call makechange
-	addl $20, %esp 	  # Clean the stack
+	# Return the stack to the proper places
+	popl %ebx
+	popl %ecx
+	popl %eax
+	popl %esi
+	popl %edx
+	# Pop c(ECX) back off
+	popl (%ecx)
+	
+	# Make sure the amount hasn't been found
+call2:	cmpl $0, %edi
+	jz done
+
+
+	# Start preparing for second call
+	cmpl $1, %esi
+	jz done
+	addl $4, %ecx
+	decl %esi
+	pushl %edx
+	pushl %esi
+	pushl %eax
+	pushl %ecx
+	pushl %ebx
+	# RECURSION TIME!
+	call makechange
+	addl $20, %esp	  # Clean the stack
+
+	# Check if amount was found
+	cmpl $0, %edi
+	jz done
+	movl %edi, (%edx)
 done:	ret
 
 setregs:
@@ -43,25 +79,28 @@ setregs:
 	movl $-1, %edi
 	ret
 
-checknum:
-	# This function will decrement the on-hand coin count
-	cmpl $0, %ecx
-	jz decrease
-	decl (%ecx)
-	ret
-decrease:
-	addl $4, %ecx
-	addl $4, %eax
-	movl $0, (%edx) # Clear the change value for this denomination
-	addl $4, %edx
-	decl %esi
-	ret
+#checknum:
+#	# This function will decrement the on-hand coin count
+#	cmpl $0, %ecx
+#	jz decrease
+#	decl (%ecx)
+#	ret
+#decrease:
+#	addl $4, %ecx
+#	addl $4, %eax
+#	movl $0, (%edx) # Clear the change value for this denomination
+#	addl $4, %edx
+#	decl %esi
+#	ret
 
 reset_change:
 	# This function sets the change array to zeros.
 	pushl %edx 	  # First, back up the data so it
 	pushl %ecx	  # can be used for other things.
+	pushl %esi
 	movl $1, %ecx	  # Set up ECX as a counter.
+	# Need to use the initial value of ESI for this
+	movl -44(%ebp), %esi
 loop:	movl $0, (%edx)	  # Simple loop to zero out thechange.
 	cmpl %ecx, %esi
 	jz finish
@@ -69,10 +108,13 @@ loop:	movl $0, (%edx)	  # Simple loop to zero out thechange.
 	incl %ecx
 	jmp loop
 finish:	# Restore data to original locations.
+	popl %esi
 	popl %ecx
 	popl %edx
 	ret
 
+# FROM THIS POINT ON, ALL THE CODE DOES IS FIND THE DISTRIBUTION
+# OF COINS FROM THE CURRENT PERMUTATION
 findchange:
 	# This function calculates the amount of change
 	# from the given set of coins.
@@ -83,6 +125,8 @@ findchange:
 	pushl %ebx
 	pushl %ecx
 	pushl %edx
+	# We will need the pointer to the beginning of the on-hand array
+	movl -52(%ebp), %ecx
 	pushl (%ecx)	  # Stack temporarily holds on hand count.
 
 top:	cmpl $0, %ebx	  # If the amount is zero,
@@ -108,7 +152,7 @@ lowdenom:
 endsuccess:
 	# Clear stack and return.
 	addl $24, %esp
-	movl $0, %eax
+	movl $0, %edi
 	ret
 endfail:
 	# Reset to original values.
