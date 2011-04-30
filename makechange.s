@@ -79,19 +79,6 @@ setregs:
 	movl $-1, %edi
 	ret
 
-#checknum:
-#	# This function will decrement the on-hand coin count
-#	cmpl $0, %ecx
-#	jz decrease
-#	decl (%ecx)
-#	ret
-#decrease:
-#	addl $4, %ecx
-#	addl $4, %eax
-#	movl $0, (%edx) # Clear the change value for this denomination
-#	addl $4, %edx
-#	decl %esi
-#	ret
 
 reset_change:
 	# This function sets the change array to zeros.
