@@ -10,25 +10,26 @@ makechange:
 	# EBX will store the current amount
 	# EDX will store the pointer to the change array
 	# ESI will store the number of denominations
-	# EDI will do something that I have yet to settle on
+	# EDI will store the "return value" of findchange
 	# makechange( amt, *onhand, *denoms, ndenoms, *thechange)
 	# =========>  EBX    ECX      EAX      ESI       EDX
 
-	call setregs	  # Use subroutine to grab arguments
-	call findchange
-	cmpl $0, %edi
+	call setregs	  # Use subroutine to grab arguments.
+	call findchange	  # Finds if the current permutation works.
+	cmpl $0, %edi	  # EDI will be set to 0 if the value is found.
 	jz done
 
+	# Skip up until call2 if the count of the current
+	# on-hand denomination is 0.
 	cmpl $0, (%ecx)
 	jz call2
-	# Prepare for next call
-	#call checknum
+	# Prepare for next call.
 	call reset_change
-	# Backup c(ECX) before the next call
+	# Backup c(ECX) before the next call.
 	pushl (%ecx)
-	# Now, decrement c(ECX) to be used in next call
+	# Now, decrement c(ECX) to be used in next call.
 	decl (%ecx)
-	# Push arguments
+	# Push arguments.
 	pushl %edx
 	pushl %esi
 	pushl %eax
@@ -36,13 +37,13 @@ makechange:
 	pushl %ebx
 	# RECURSION TIME!
 	call makechange
-	# Return the stack to the proper places
+	# Return the stack to the proper places.
 	popl %ebx
 	popl %ecx
 	popl %eax
 	popl %esi
 	popl %edx
-	# Pop c(ECX) back off
+	# Pop c(ECX) back off.
 	popl (%ecx)
 	
 	# Make sure the amount hasn't been found
